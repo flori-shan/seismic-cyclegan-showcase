@@ -1,5 +1,7 @@
 # 07 · 工程踩坑与解决
 
+> 图：[overlap 拼接](../assets/images/05-overlap-stitch.png) · [振幅对齐](../assets/images/06-amplitude-align.png) · [实验迭代](../assets/images/09-experiment-timeline.png)
+
 > 这部分集中记录了项目落地过程中的真实工程经验。
 
 ---

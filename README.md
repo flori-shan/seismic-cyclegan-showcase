@@ -1,110 +1,127 @@
-# 基于 CycleGAN 的地震道插值研究
+# 基于 CycleGAN 的地震道插值
 
-> 梳理本人在工业场景下探索「深度学习地震道插值」的完整技术路线。  
-> 本仓库**不包含**原始地震数据与训练代码（数据属项目/商业资产），重点呈现：**问题定义 → 文献调研 → 方案设计 → 实验对比 → 问题排查 → 改进方向**。
+> 把「缺失检波道的炮集」补回来。  
+> 本仓库是技术复盘文档，**不含真实炮集数据**（商业资产）。文中的对比图均为**合成示意图**，用来帮助理解思路；你手头的 Word 实验截图可以按 [assets/images/README.md](assets/images/README.md) 说明替换进去。
 
----
-
-## 一句话介绍
-
-将炮集图中**缺失检波道**的重建问题，建模为**不完整炮集 ↔ 完整炮集**之间的图像域翻译；在 TensorFlow 2 上实现 CycleGAN 训练流程，系统对比 overlap 切分、生成器结构（U-Net / ResNet）、训练轮数等因素，并用**波形显示 + 频谱分析**评估插值质量。
+**建议先看图：** [docs/00-visual-guide.md](docs/00-visual-guide.md) ← 5 分钟看完整个项目
 
 ---
 
-## 项目背景
+## 一句话
 
-| 维度 | 说明 |
-|------|------|
-| **业务问题** | 地震采集存在道缺失（近偏移距丢失、不规则采样），需在炮集（shot gather）上补全缺失道 |
-| **传统基线** | 双线性 / 双三次卷积插值 — 边缘模糊、高频细节损失 |
-| **深度学习路线** | GAN 系列 → 超分思路（SRGAN）→ **地震道专用 CycleGAN 论文** → 工程落地 |
-| **技术栈** | TensorFlow 2、`tf.data` / `tensorflow_datasets`、U-Net 生成器、PatchGAN 判别器 |
+炮集就是一张「道 × 时间」的图。删掉 30% 竖向道 → 用 CycleGAN 学会从「缺道图」变「完整图」→ 切块预测、重叠拼接 → 用波形和频谱看效果。
 
 ---
 
-## 整体技术路线
+## 先看这三张图
 
-```mermaid
-flowchart LR
-    A[业务需求：炮集道缺失] --> B[传统插值基线调研]
-    B --> C[GAN / pix2pix / CycleGAN 调研]
-    C --> D[论文：Seismic interpolation with GANs]
-    D --> E[数据构造：删减30%检波道]
-    E --> F[CycleGAN 训练与推理]
-    F --> G[重叠切块拼接 + 频谱评估]
-    G --> H[问题排查与迭代优化]
-```
+### 1. 炮集是什么？
+
+![炮集示意图](assets/images/01-shot-gather.png)
+
+横轴每一列是一道检波器，纵轴是时间，颜色是振幅。**缺道 = 图上有白色竖条。**
 
 ---
 
-## 核心思路
+### 2. 我们要干什么？
 
-1. **域定义**  
-   - 域 A：删减 30% 检波道后的炮集图（模拟缺失）  
-   - 域 B：完整炮集图  
-   - 无需严格像素对齐的成对标签，适合 **unpaired CycleGAN**
+![缺失道对比](assets/images/02-missing-traces.png)
 
-2. **数据工程**  
-   - GOM 2D 数据集：Madagascar `sfpatch` 重叠切块  
-   - 自研山地数据集：200×200 / 1024×1024 patch，`overlap` 缓解边缘效应  
-   - 删除前 5 道模拟近偏移缺失；振幅归一化对齐两域
-
-3. **模型**  
-   - 生成器：U-Net（pix2pix 风格）为主，对比 ResNet 残差生成器  
-   - 判别器：70×70 PatchGAN  
-   - 损失：对抗损失 + 循环一致性损失（λ=10）
-
-4. **关键实验结论**（详见 [docs/05-experiments.md](docs/05-experiments.md)）  
-   - **overlap 切块**显著减轻边缘道生成过浅、拼接缝隙问题  
-   - 两域**振幅不一致**会导致颜色深度偏差，需预处理对齐  
-   - 40 epoch 与 200 epoch、U-Net vs ResNet 均做对比记录
-
-5. **评估**  
-   - 视觉：波形变面积显示、大图对比、相减残差图  
-   - 定量：一维 / 二维频谱分析（转 SEG-Y 后分析）  
-   - 对标：工业软件处理结果、RNA 等传统方法（规划中）
+左边完整，右边删掉 30% 的道。**任务：把右边的白条补成左边那样。**
 
 ---
 
-## 文档目录
+### 3. 为什么用 CycleGAN？
 
-| 文档 | 内容 |
-|------|------|
-| [01-background.md](docs/01-background.md) | 问题定义、插值算法调研 |
-| [02-literature-review.md](docs/02-literature-review.md) | GAN 演进、相关论文笔记 |
-| [03-methodology.md](docs/03-methodology.md) | CycleGAN 原理与地震场景映射 |
-| [04-data-pipeline.md](docs/04-data-pipeline.md) | 数据集、预处理、切块与加载 |
-| [05-experiments.md](docs/05-experiments.md) | 实验设计与结果分析 |
-| [06-evaluation.md](docs/06-evaluation.md) | 频谱与波形评估方法 |
-| [07-troubleshooting.md](docs/07-troubleshooting.md) | 工程踩坑（Mac MPS、空图、尺寸不匹配等） |
+![CycleGAN 思路](assets/images/03-cyclegan-idea.png)
+
+不需要「缺道图 ↔ 完整图」严格成对，只要两个域各有一批图，让模型学分布就行。详见 [docs/03-methodology.md](docs/03-methodology.md)。
 
 ---
 
-## 为什么本仓库没有数据和代码？
+## 效果对比（示意图）
 
-- 地震炮集数据属于**项目/商业数据**，无法公开  
-- 本仓库定位为技术复盘文档：展示调研深度、工程化能力和问题拆解思路  
-- 通用 CycleGAN 复现可参考：[pytorch-CycleGAN-and-pix2pix](https://github.com/junyanz/pytorch-CycleGAN-and-pix2pix)（本机学习用）
+![方法对比](assets/images/04-method-compare.png)
 
----
-
-## 个人贡献摘要
-
-- 独立完成从**传统插值 → GAN 论文调研 → CycleGAN 地震插值**的技术选型与方案设计  
-- 实现完整 **TF2 数据管道**（`tensorflow_datasets` / `tf.data`）及炮集**重叠切块—推理—拼接**流程  
-- 设计多组对照实验（overlap、epoch、生成器结构、振幅对齐），形成可复现的实验记录  
-- 排查并解决 **Mac MPS + Adam 崩溃、预测空图、测试集尺寸不匹配、图片乱序拼接** 等工程问题  
-- 建立**波形 + 频域**双重评估框架，为后续与 RNA / 商业软件对标奠定基础
+| 方法 | 直观感受 |
+|------|----------|
+| 双三次 | 能填上，但同相轴发糊 |
+| CycleGAN | 纹理更锐，高频保留更好 |
+| 关键坑 | 振幅没对齐 → 颜色偏浅；没 overlap → 拼接有缝 |
 
 ---
 
-## 参考文献
+## 实验怎么一步步改过来的
 
-见 [docs/references.md](docs/references.md)
+![实验时间线](assets/images/09-experiment-timeline.png)
+
+| 版本 | 改了什么 | 结果 |
+|------|----------|------|
+| v1 | 没做 overlap | 边缘道浅、拼接有缝 |
+| v2 | 振幅没对齐 | 整张图颜色偏浅 |
+| v3 | 对齐振幅 | 颜色对了，纹理还糊 |
+| v4 | 加上 overlap | 缝隙没了，效果最好 |
+
+![overlap 对比](assets/images/05-overlap-stitch.png)
+
+![振幅对齐](assets/images/06-amplitude-align.png)
+
+---
+
+## 实际工程流程
+
+![工程流程](assets/images/07-workflow.png)
+
+论文里往往只写到「训练 CycleGAN」。落地时还多出：**切块 → 逐张预测（不能 shuffle）→ overlap 拼接 → 转 SEG-Y 做频谱**。
+
+---
+
+## 怎么评估好不好？
+
+![频谱对比](assets/images/08-spectrum.png)
+
+不能只看「像不像照片」。地震更关心：**同相轴断没断、高频还在不在。**
+
+---
+
+## 文档索引
+
+| 想看什么 | 点这里 |
+|----------|--------|
+| **看图速览（推荐入口）** | [00-visual-guide.md](docs/00-visual-guide.md) |
+| 问题从哪来 | [01-background.md](docs/01-background.md) |
+| 为什么选 CycleGAN | [02-literature-review.md](docs/02-literature-review.md) |
+| 原理怎么映射到地震 | [03-methodology.md](docs/03-methodology.md) |
+| 数据怎么处理 | [04-data-pipeline.md](docs/04-data-pipeline.md) |
+| 实验记录 | [05-experiments.md](docs/05-experiments.md) |
+| 波形 / 频谱评估 | [06-evaluation.md](docs/06-evaluation.md) |
+| 踩坑清单 | [07-troubleshooting.md](docs/07-troubleshooting.md) |
+
+---
+
+## 技术栈
+
+TensorFlow 2 · `tf.data` / `tensorflow_datasets` · U-Net 生成器 · PatchGAN · GOM 2D + 山地自研数据
+
+---
+
+## 个人做了什么
+
+- 传统插值调研 → GAN 论文选型 → CycleGAN 地震方案落地  
+- TF2 数据管道 + overlap 切块推理拼接  
+- 对照实验：overlap / epoch / U-Net vs ResNet / 振幅对齐  
+- 解决：Mac MPS + Adam 崩溃、预测空图、测试集尺寸不一致、shuffle 乱序拼接  
+
+---
+
+## 说明
+
+- 示意图由 `scripts/generate_diagrams.py` 生成，标注了「合成数据」  
+- 你 Word 文档里的真实实验截图可以替换进 `assets/images/`（见该目录 README）  
+- 通用 CycleGAN 学习：[pytorch-CycleGAN-and-pix2pix](https://github.com/junyanz/pytorch-CycleGAN-and-pix2pix)
 
 ---
 
 ## License
 
-文档内容采用 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)。  
-代码与数据未包含在本仓库中。
+文档 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)

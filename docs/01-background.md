@@ -1,5 +1,7 @@
 # 01 · 问题背景与传统基线
 
+> 先看图：[00-visual-guide.md](00-visual-guide.md) · [炮集示意](../assets/images/01-shot-gather.png) · [缺道示意](../assets/images/02-missing-traces.png)
+
 ## 1. 业务问题：地震道插值
 
 地震勘探中，炮集（Shot Gather）记录的是**炮点激发后各检波点接收的地震波形**。实际采集常出现：
