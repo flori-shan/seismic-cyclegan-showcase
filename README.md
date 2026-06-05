@@ -1,6 +1,6 @@
 # 基于 CycleGAN 的地震道插值研究
 
-> **面试展示仓库** — 梳理本人在工业场景下探索「深度学习地震道插值」的完整技术路线。  
+> 梳理本人在工业场景下探索「深度学习地震道插值」的完整技术路线。  
 > 本仓库**不包含**原始地震数据与训练代码（数据属项目/商业资产），重点呈现：**问题定义 → 文献调研 → 方案设计 → 实验对比 → 问题排查 → 改进方向**。
 
 ---
@@ -37,7 +37,7 @@ flowchart LR
 
 ---
 
-## 核心思路（面试 2 分钟版）
+## 核心思路
 
 1. **域定义**  
    - 域 A：删减 30% 检波道后的炮集图（模拟缺失）  
@@ -77,19 +77,18 @@ flowchart LR
 | [05-experiments.md](docs/05-experiments.md) | 实验设计与结果分析 |
 | [06-evaluation.md](docs/06-evaluation.md) | 频谱与波形评估方法 |
 | [07-troubleshooting.md](docs/07-troubleshooting.md) | 工程踩坑（Mac MPS、空图、尺寸不匹配等） |
-| [08-interview-guide.md](docs/08-interview-guide.md) | 面试话术与高频追问 |
 
 ---
 
 ## 为什么本仓库没有数据和代码？
 
 - 地震炮集数据属于**项目/商业数据**，无法公开  
-- 本仓库定位为 **Technical Portfolio**：展示调研深度、工程化能力和问题拆解思路  
+- 本仓库定位为技术复盘文档：展示调研深度、工程化能力和问题拆解思路  
 - 通用 CycleGAN 复现可参考：[pytorch-CycleGAN-and-pix2pix](https://github.com/junyanz/pytorch-CycleGAN-and-pix2pix)（本机学习用）
 
 ---
 
-## 个人贡献摘要（可写入简历）
+## 个人贡献摘要
 
 - 独立完成从**传统插值 → GAN 论文调研 → CycleGAN 地震插值**的技术选型与方案设计  
 - 实现完整 **TF2 数据管道**（`tensorflow_datasets` / `tf.data`）及炮集**重叠切块—推理—拼接**流程  

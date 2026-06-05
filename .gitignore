@@ -1,6 +1,7 @@
 # 原始工作文档（含公司内部材料，勿上传）
 *.docx
 *.extracted.txt
+docs/08-interview-guide.md
 
 # 数据与模型（地震数据为商业/项目资产，本仓库仅保留思路文档）
 data/
