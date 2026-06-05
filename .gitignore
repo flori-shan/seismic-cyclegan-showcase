@@ -1,0 +1,24 @@
+# 原始工作文档（含公司内部材料，勿上传）
+*.docx
+*.extracted.txt
+
+# 数据与模型（地震数据为商业/项目资产，本仓库仅保留思路文档）
+data/
+models/
+checkpoints/
+*.sgy
+*.segy
+
+# Python / IDE
+__pycache__/
+*.pyc
+.venv/
+venv/
+.DS_Store
+.idea/
+.vscode/
+
+# 大文件与临时产物
+*.zip
+*.tar.gz
+outputs/
